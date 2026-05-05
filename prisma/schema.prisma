@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  fullName  String
+  birthdate DateTime
+  email     String   @unique
+  password  String
+  role      Role     @default(PLAYER)
+  createdAt DateTime @default(now())
+
+  player Player?
+}
+
+model League {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  divisions Division[]
+}
+
+model Division {
+  id        String   @id @default(uuid())
+  name      String
+  format    Format
+  createdAt DateTime @default(now())
+
+  leagueId String
+  league   League @relation(fields: [leagueId], references: [id])
+
+  teams Team[]
+  games Game[]
+}
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id])
+
+  players Player[]
+
+  gamesA Game[] @relation("TeamA")
+  gamesB Game[] @relation("TeamB")
+}
+
+model Player {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  stats PlayerGameStats[]
+  Game  Game[]
+}
+
+model Game {
+  id String @id @default(uuid())
+
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id])
+
+  teamAId String
+  teamBId String
+
+  teamA Team @relation("TeamA", fields: [teamAId], references: [id])
+  teamB Team @relation("TeamB", fields: [teamBId], references: [id])
+
+  playerOfTheGameId String?
+  playerOfTheGame   Player? @relation(fields: [playerOfTheGameId], references: [id])
+
+  date   DateTime
+  status Status
+  stage  Stage
+
+  scoreA Int?
+  scoreB Int?
+
+  notes String?
+  stats PlayerGameStats[]
+
+  createdAt DateTime @default(now())
+}
+
+model PlayerGameStats {
+  id String @id @default(uuid())
+
+  gameId String
+  game   Game   @relation(fields: [gameId], references: [id])
+
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id])
+
+  points    Int
+  rebounds  Int
+  assists   Int
+  steals    Int
+  blocks    Int
+  fouls     Int
+  turnovers Int
+
+  notes String?
+
+  createdAt DateTime @default(now())
+}
+
+enum Format {
+  ROUND_ROBIN
+  SINGLE_ELIMINATION
+}
+
+enum Stage {
+  GROUP_STAGE
+  QUARTERFINAL
+  SEMIFINAL
+  FINAL
+}
+
+enum Status {
+  UPCOMING
+  PLAYING
+  FINISHED
+  CANCELLED
+}
+
+enum Role {
+  ADMIN
+  PLAYER
+}
