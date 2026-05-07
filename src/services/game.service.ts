@@ -1,5 +1,5 @@
 import { PrismaClient, Status } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { GamePatch, validateGameTransition } from "./games.rules";
 
 const prisma = new PrismaClient();
 
@@ -263,5 +263,45 @@ export async function getGameById(id: string) {
     score: { teamA: scoreA, teamB: scoreB },
     playerOfTheGame: formattedPlayerOfTheGame,
     stats: { teamA: teamAStats, teamB: teamBStats },
+  };
+}
+
+export async function updateGame(id: string, patch: GamePatch) {
+  const game = await prisma.game.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!game) return null;
+
+  const errors = validateGameTransition(game, patch);
+
+  if (errors)
+    return {
+      errors,
+    };
+
+  const updatedGame = await prisma.game.update({
+    where: {
+      id,
+    },
+    data: {
+      ...(patch.status !== undefined && {
+        status: patch.status,
+      }),
+
+      ...(patch.scoreA !== undefined && {
+        scoreA: patch.scoreA,
+      }),
+
+      ...(patch.scoreB !== undefined && {
+        scoreB: patch.scoreB,
+      }),
+    },
+  });
+
+  return {
+    data: updatedGame,
   };
 }
